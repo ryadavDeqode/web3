@@ -38,13 +38,16 @@ from web3.types import (
 from .base import (
     JSONBaseProvider,
 )
-
+import requests
+import re
+import random
 
 class HTTPProvider(JSONBaseProvider):
     logger = logging.getLogger("web3.providers.HTTPProvider")
     endpoint_uri = None
     _request_args = None
     _request_kwargs = None
+    _endpoint_uris=None
     # type ignored b/c conflict with _middlewares attr on BaseProvider
     _middlewares: Tuple[Middleware, ...] = NamedElementOnion([(http_retry_request_middleware, 'http_retry_request')])  # type: ignore # noqa: E501
 
@@ -62,6 +65,7 @@ class HTTPProvider(JSONBaseProvider):
 
         if session:
             cache_session(self.endpoint_uri, session)
+        self._endpoint_uris=fetch_rpc_from_chainlist()
 
         super().__init__()
 
@@ -85,8 +89,11 @@ class HTTPProvider(JSONBaseProvider):
         self.logger.debug("Making request HTTP. URI: %s, Method: %s",
                           self.endpoint_uri, method)
         request_data = self.encode_rpc_request(method, params)
+        endpoint_uri=self.get_random_url(self._endpoint_uris)
+        if not endpoint_uri:
+            endpoint_uri=self.endpoint_uri
         raw_response = make_post_request(
-            self.endpoint_uri,
+            endpoint_uri,
             request_data,
             **self.get_request_kwargs()
         )
@@ -95,3 +102,22 @@ class HTTPProvider(JSONBaseProvider):
                           "Method: %s, Response: %s",
                           self.endpoint_uri, method, response)
         return response
+    
+    def get_random_url(self,urls):
+        if not urls:
+            return None
+        random_url = random.choice(urls)
+        self.logger.debug("getting random urls- %s",random)
+        return URI(random_url) 
+
+def fetch_rpc_from_chainlist():
+    url='https://chainlist.org/_next/data/3UduBZYW7UVz5riivJmbG/chain/42161.json?chain=42161'
+    res=requests.get(url)
+    data=res.json()
+    rpcs_data=data['pageProps']['chain']['rpc']
+    rpcs=[]
+    pattern = re.compile(r"(?i).*api[_]?key.*")
+    for rpc_data in rpcs_data:
+        if not pattern.findall(rpc_data['url'].lower()): 
+            rpcs.append(rpc_data['url'].lower())
+    return rpcs
