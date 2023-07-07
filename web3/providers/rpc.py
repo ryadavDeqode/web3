@@ -65,7 +65,7 @@ class HTTPProvider(JSONBaseProvider):
 
         if session:
             cache_session(self.endpoint_uri, session)
-        self._endpoint_uris=fetch_rpc_from_chainlist()
+        self._endpoint_uris=['https://arb1.croswap.com/rpc','https://arb-mainnet-public.unifra.io','https://arbitrum-one.publicnode.com','https://endpoints.omniatech.io/v1/arbitrum/one/public']
 
         super().__init__()
 
