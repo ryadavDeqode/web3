@@ -113,11 +113,14 @@ class HTTPProvider(JSONBaseProvider):
 def fetch_rpc_from_chainlist():
     url='https://chainlist.org/_next/data/3UduBZYW7UVz5riivJmbG/chain/42161.json?chain=42161'
     res=requests.get(url)
-    data=res.json()
-    rpcs_data=data['pageProps']['chain']['rpc']
-    rpcs=[]
-    pattern = re.compile(r"(?i).*api[_]?key.*")
-    for rpc_data in rpcs_data:
-        if not pattern.findall(rpc_data['url'].lower()): 
-            rpcs.append(rpc_data['url'].lower())
-    return rpcs
+    try:
+        data=res.json()
+        rpcs_data=data['pageProps']['chain']['rpc']
+        rpcs=[]
+        pattern = re.compile(r"(?i).*api[_]?key.*")
+        for rpc_data in rpcs_data:
+            if not pattern.findall(rpc_data['url'].lower()): 
+                rpcs.append(rpc_data['url'].lower())
+        return rpcs
+    except:
+        logging.info("Fetching rpc from chainlist failed")
